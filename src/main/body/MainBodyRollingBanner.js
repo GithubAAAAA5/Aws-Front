@@ -1,12 +1,12 @@
 import styled from "styled-components";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, EffectCoverflow } from "swiper/modules";
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import MovieModal from "../../components/MovieModal/MovieModal";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, EffectCoverflow } from "swiper/modules";
 
 const MainBodyRollingBannerAreaStyle = styled.div`
   height: 60vh;
@@ -109,7 +109,6 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [error, setError] = useState(null);
-  const [isSliding, setIsSliding] = useState(false);
   const navigate = useNavigate();
   const swiperRef = useRef(null);
 
@@ -141,24 +140,29 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
   const handleKeywordClick = useCallback((keyword) => {
     setSelectedMovie(null);
     clearSearchValue();
-    navigate(`/search?keyword=${keyword}`);
+    navigate(`/search?keyword=${keyword}`);  // 이 부분을 수정
   }, [clearSearchValue, navigate]);
 
-  const handleMovieClick = useCallback((movie, index) => {
+  const handleMovieClick = useCallback((movie) => {
+    setSelectedMovie(movie);
+  }, []);
+
+  const handleSlideClick = useCallback((index) => {
     if (swiperRef.current && swiperRef.current.swiper) {
-      const currentIndex = swiperRef.current.swiper.realIndex;
-      if (index !== currentIndex) {
-        setIsSliding(true);
-        swiperRef.current.swiper.slideToLoop(index, 400, false);
-        setTimeout(() => {
-          setIsSliding(false);
-          setSelectedMovie(movie);
-        }, 500);
+      const swiper = swiperRef.current.swiper;
+      const currentIndex = swiper.realIndex;
+      const clickedIndex = (index - currentIndex + swiper.slides.length) % swiper.slides.length;
+
+      if (clickedIndex !== Math.floor(swiper.slides.length / 2)) {
+        // 클릭한 슬라이드가 중앙이 아닌 경우
+        swiper.slideToLoop(index, 500);
       } else {
+        // 클릭한 슬라이드가 이미 중앙인 경우
+        const movie = popularMovies[index];
         setSelectedMovie(movie);
       }
     }
-  }, []);
+  }, [popularMovies]);
 
   const swiperParams = useMemo(() => ({
     effect: 'coverflow',
@@ -178,13 +182,15 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
       disableOnInteraction: false,
     },
     speed: 1000,
-    modules: [Autoplay, EffectCoverflow]
+    modules: [Autoplay, EffectCoverflow],
+    onSlideChange: () => {
+      setSelectedMovie(null);  // 슬라이드 변경 시 모달 닫기
+    },
   }), []);
 
   if (error) {
     return <ErrorMessage>{error}</ErrorMessage>;
   }
-
 
   return (
     <MainBodyRollingBannerAreaStyle>
@@ -192,7 +198,7 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
         {isLoaded && (
           <StyledSwiper {...swiperParams} ref={swiperRef}>    
             {popularMovies.map((movie, index) => (
-              <StyledSwiperSlide key={movie.id} onClick={() => handleMovieClick(movie, index)}>
+              <StyledSwiperSlide key={movie.id} onClick={() => handleSlideClick(index)}>
                 <SlideImage 
                   src={`${baseImageUrl}${movie.backdrop_path}`}
                   alt={`영화 ${movie.title}의 배경 이미지`}
@@ -204,7 +210,7 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
           </StyledSwiper>
         )}
       </RollingImgArea>
-      {selectedMovie && !isSliding && (
+      {selectedMovie && (
         <MovieModal
           movie={selectedMovie} 
           onClose={() => setSelectedMovie(null)}
