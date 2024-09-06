@@ -1,0 +1,98 @@
+.board-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.board-form {
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 20px;
+  border-radius: 4px;
+  }
+.nav-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  margin-top: 60px;
+}
+.nav-tabs button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+body {
+  background-color: #141414;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.poster-grid img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.table-container {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 4px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background-color: #333;
+  padding: 12px;
+  text-align: left;
+  font-weight: bold;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #333;
+}
+
+tr:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pagination .button {
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  margin: 0 5px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pagination .button:hover {
+  background-color: rgb(143, 8, 14);
+}
+
+.pagination .button.active {
+  background-color: #e50914;
+}
