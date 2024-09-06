@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { FaStar, FaEdit, FaTrash } from 'react-icons/fa';
 import { Cookies } from 'react-cookie';
 import styled, { css, keyframes } from 'styled-components';
-import api from '../Member/api';
+import api from './api';
 
 const cookies = new Cookies();
 
@@ -22,9 +22,10 @@ const scrollbarStyle = css`
 const StyledReviewSection = styled.div`
   margin-bottom: 10px;
   margin-top: 20px;
-  max-height: 40%;
-  width: auto;
-  ${scrollbarStyle}
+  height: 40%; // 고정 높이 설정
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ReviewHeader = styled.div`
@@ -130,10 +131,11 @@ const ReviewList = styled.ul`
   padding: 10px;
   background-color: rgba(255, 255, 255, 0.1); 
   border-radius: 5px;
-  max-height: 60%;
+  max-height: calc(100% - 100px); // 상단 여백을 고려한 최대 높이
   overflow-y: auto;
   ${scrollbarStyle}
   list-style-type: none;
+  width: calc(100% - 10px); // 스크롤바 공간 고려
 `;
 
 const ReviewItem = styled.li`
@@ -170,6 +172,7 @@ const ActionButtons = styled.div`
   gap: 10px;
 `;
 
+
 const ReviewSection = ({ 
   reviews, 
   rating, 
@@ -183,7 +186,8 @@ const ReviewSection = ({
   total,
   allStars,
   handleEditReview,
-  handleDeleteReview
+  handleDeleteReview,
+  userHasReviewed
 }) => {
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -216,6 +220,7 @@ const ReviewSection = ({
   const handleReviewChange = (e) => setReview(e.target.value);
 
   const observer = useRef();
+
   const lastReviewElementRef = useCallback(node => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
@@ -280,6 +285,9 @@ const ReviewSection = ({
         <MovieReviewCount>총 {total}건 | 평점 {total > 0 ? (allStars / total).toFixed(1) : '0'}</MovieReviewCount>
       </ReviewHeader>  
 
+      {!userHasReviewed ? (
+        <>
+
       <StarRating>
         {[...Array(5)].map((_, index) => (
           <FaStar
@@ -300,7 +308,11 @@ const ReviewSection = ({
         />
         <SubmitReview onClick={handleSubmitReview}>댓글</SubmitReview>
       </ReviewInputContainer>
-
+        </>
+      ) : (
+        <p>이미 이 영화에 대한 리뷰를 작성하셨습니다.</p>
+      )}
+      
       <ReviewList>
         {reviews.length > 0 ? (
           reviews.map((item, index) => (
@@ -309,22 +321,43 @@ const ReviewSection = ({
               ref={index === reviews.length - 1 ? lastReviewElementRef : null}
             >
               <ReviewAuthor>{item.mnick}</ReviewAuthor>
-              <ReviewContent>{item.text}</ReviewContent>
-              <ReviewRating>
-                {[...Array(5)].map((_, i) => (
-                  <FaStar key={i} color={i < item.rating ? "#ffc107" : "#e4e5e9"} />
-                ))}
-              </ReviewRating>
-              <ActionButtons>
-                {canEditOrDelete(item.mnick) ? (
-                  <>
-                    <ActionButton onClick={() => startEditing(item.review_id)}><FaEdit /></ActionButton>
-                    <ActionButton onClick={() => handleDeleteReview(item.review_id)}><FaTrash /></ActionButton>
-                  </>
-                ) : (
-                  <div style={{ width: '60px' }}></div> // 빈 공간 유지
-                )}
-              </ActionButtons>
+              {editingStates[item.review_id]?.isEditing ? (
+                <>
+                  <ReviewInput 
+                    value={editingStates[item.review_id].text}
+                    onChange={(e) => handleEditTextChange(item.review_id, e.target.value)}
+                  />
+                  <StarRating>
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar
+                        key={i}
+                        color={i < editingStates[item.review_id].rating ? "#ffc107" : "#e4e5e9"}
+                        onClick={() => handleEditRatingChange(item.review_id, i + 1)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </StarRating>
+                  <ActionButton onClick={() => submitEdit(item.review_id)}>저장</ActionButton>
+                  <ActionButton onClick={() => cancelEditing(item.review_id)}>취소</ActionButton>
+                </>
+              ) : (
+                <>
+                  <ReviewContent>{item.text}</ReviewContent>
+                  <ReviewRating>
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar key={i} color={i < item.rating ? "#ffc107" : "#e4e5e9"} />
+                    ))}
+                  </ReviewRating>
+                  <ActionButtons>
+                    {canEditOrDelete(item.mnick) && (
+                      <>
+                        <ActionButton onClick={() => startEditing(item.review_id)}><FaEdit /></ActionButton>
+                        <ActionButton onClick={() => handleDeleteReview(item.review_id)}><FaTrash /></ActionButton>
+                      </>
+                    )}
+                  </ActionButtons>
+                </>
+              )}
             </ReviewItem>
           ))
         ) : (
@@ -332,8 +365,8 @@ const ReviewSection = ({
             아직 이 영화에 대한 리뷰는 존재하지 않습니다.
           </EmptyReviewMessage>
         )}
-        {loading && <LoadingSpinner />}
       </ReviewList>
+      {loading && <LoadingSpinner />}
     </StyledReviewSection>
   );
 };

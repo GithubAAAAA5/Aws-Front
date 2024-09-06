@@ -4,6 +4,7 @@ import api from '../Member/api';
 
 const cookies = new Cookies();
 
+console.log('token', cookies.get("accessToken"));
 
 const useReviews = (movie_id, movie_title) => {
   const [rating, setRating] = useState(0);
@@ -16,6 +17,7 @@ const useReviews = (movie_id, movie_title) => {
   const [allStars, setAllStars] = useState(0);
   const [currentUser, setCurrentUser] = useState(null); // currentUser 상태 추가
   const [error, setError] = useState(null);
+  const [userHasReviewed, setUserHasReviewed] = useState(false);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -27,7 +29,11 @@ const useReviews = (movie_id, movie_title) => {
               'Authorization': `Bearer ${token}`
             }
           });
-          setCurrentUser(response.data); // 현재 사용자 정보를 상태로 설정
+          setCurrentUser(response.data);
+          
+          // 현재 사용자의 리뷰 존재 여부 확인
+          const userReview = reviews.find(review => review.mnick === response.data.mnick);
+          setUserHasReviewed(!!userReview);
         } catch (error) {
           console.error("Error fetching user data:", error);
         }
@@ -35,53 +41,56 @@ const useReviews = (movie_id, movie_title) => {
     };
 
     fetchCurrentUser();
-  }, []); // 컴포넌트 마운트 시 한 번만 실행
+  }, [reviews]);
 
+  
   const fetchReviews = useCallback(async () => {
     if (loading || !hasMore) return;
-
+  
     setLoading(true);
-    setError(null);  // Reset error state before new request
+    setError(null);
     try {
       const requestData = {
         "movie_id": movie_id,
         "page": page,
         "size": 6
       };
-      console.log('Request data:', requestData);
-
+  
       const response = await api.post('/api/review/listOfReviewPaginated', requestData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${cookies.get("accessToken")}`
         }
       });
-
-      console.log('Server response:', response);
+  
       const newReviews = (response.data.dtoList || []).map(review => ({
         review_id: review.review_id,
         text: review.review_text,
         rating: review.review_star,
-        mnick: review.mnick  // 리뷰의 작성자 닉네임 사용
+        mnick: review.mnick
       }));
-
+  
+      setReviews(prevReviews => {
+        const updatedReviews = [...prevReviews, ...newReviews];
+        // 현재 사용자의 리뷰 존재 여부 확인
+        if (currentUser) {
+          const userReview = updatedReviews.find(review => review.mnick === currentUser.mnick);
+          setUserHasReviewed(!!userReview);
+        }
+        return updatedReviews;
+      });
       setTotal(response.data.total || 0);
       setAllStars(response.data.allStars || 0);
-      setReviews(prevReviews => [...prevReviews, ...newReviews]);
-
-      console.log('Fetched reviews:', newReviews);
-      console.log('setAllStars', allStars);
-
       setPage(prevPage => prevPage + 1);
       setHasMore(newReviews.length === 6);
+
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      console.error('Error response:', error.response);  // Log the full error response
       setError('Error fetching reviews. Please try again later.');
     } finally {
       setLoading(false);
     }
-  }, [movie_id, page, loading, hasMore]);
+  }, [movie_id, page, loading, hasMore, currentUser]);
 
   useEffect(() => {
     setReviews([]); // 영화가 변경될 때 리뷰 목록 초기화
@@ -91,13 +100,13 @@ const useReviews = (movie_id, movie_title) => {
   }, [movie_id]);
 
   const handleSubmitReview = async () => {
-    //로그인되기 전이면
-    if(cookies.get("accessToken") !== undefined && currentUser){
-      if (review.trim() !== '') {
-        setReviews([...reviews, { text: review, rating, mnick: currentUser.mnick }]);  // 사용자 닉네임 저장
-        setReview('');
-        setRating(0);
+    if (cookies.get("accessToken") !== undefined && currentUser) {
+      if (userHasReviewed) {
+        alert("이미 이 영화에 대한 리뷰를 작성하셨습니다.");
+        return;
+      }
 
+      if (review.trim() !== '') {
         try {
           const movieResponse = await api.post('/api/movie/register', {
             "movie_id": movie_id,
@@ -108,9 +117,9 @@ const useReviews = (movie_id, movie_title) => {
               'Authorization': `Bearer ${cookies.get("accessToken")}`
             }
           });
-
+  
           if (movieResponse.data.result === movie_id) {
-            await api.post('/api/review/register', {
+            const reviewResponse = await api.post('/api/review/register', {
               "movie_id": movie_id,
               "review_text": review,
               "review_star": rating
@@ -120,6 +129,20 @@ const useReviews = (movie_id, movie_title) => {
                 'Authorization': `Bearer ${cookies.get("accessToken")}`
               }
             });
+        
+            const newReview = {
+              review_id: reviewResponse.data.result,
+              text: review,
+              rating: rating,
+              mnick: currentUser.mnick
+            };
+        
+            setReviews(prevReviews => [newReview, ...prevReviews]);
+            setUserHasReviewed(true);
+            setTotal(prevTotal => prevTotal + 1);
+            setAllStars(prevAllStars => prevAllStars + rating);
+            setReview(''); // 입력창 초기화
+            setRating(0); // 별점 초기화
           } else {
             alert("영화 정보가 일치하지 않습니다.");
           }
@@ -128,7 +151,7 @@ const useReviews = (movie_id, movie_title) => {
           setError('Error submitting review. Please try again later.');
         }
       }
-    }else{
+    } else {
       alert("login 해주세요");
     }
   };
@@ -147,7 +170,7 @@ const useReviews = (movie_id, movie_title) => {
             'Authorization': `Bearer ${cookies.get("accessToken")}`
           }
         });
-
+  
         if (response.data.result === 'success') {
           setReviews(prevReviews => 
             prevReviews.map(review => 
@@ -156,8 +179,13 @@ const useReviews = (movie_id, movie_title) => {
                 : review
             )
           );
-          // 전체 별점 업데이트
-          setAllStars(prevAllStars => prevAllStars - review.rating + newRating);
+          const oldReview = reviews.find(review => review.review_id === reviewId);
+          setAllStars(prevAllStars => prevAllStars - oldReview.rating + newRating);
+          
+        //   // 수정 후 전체 리뷰 목록을 다시 불러옵니다
+        //   setPage(0);
+        //   setHasMore(true);
+        //   await fetchReviews();
         } else {
           setError('Failed to update review in the database.');
         }
@@ -178,13 +206,17 @@ const useReviews = (movie_id, movie_title) => {
             'Authorization': `Bearer ${cookies.get("accessToken")}`
           }
         });
-
+  
         if (response.data.result === 'success') {
           const deletedReview = reviews.find(review => review.review_id === reviewId);
           setReviews(prevReviews => prevReviews.filter(review => review.review_id !== reviewId));
           setTotal(prevTotal => prevTotal - 1);
-          // 전체 별점 업데이트
           setAllStars(prevAllStars => prevAllStars - deletedReview.rating);
+  
+          // 삭제 후 리뷰 수가 특정 임계값 이하로 떨어지면 추가 리뷰 로드
+          if (reviews.length <= 3) {
+            fetchReviews();
+          }
         } else {
           setError('Failed to delete review from the database.');
         }
@@ -200,7 +232,8 @@ const useReviews = (movie_id, movie_title) => {
   return { 
     rating, setRating, review, setReview, reviews, 
     handleSubmitReview, fetchReviews, loading, hasMore, 
-    total, allStars, error, handleEditReview, handleDeleteReview 
+    total, allStars, error, handleEditReview, handleDeleteReview,
+    userHasReviewed
   };
 };
 
