@@ -17,9 +17,8 @@ import Board from './board/Board';
 import BoardRead from './board/BoardRead';
 import BoardCreate from './board/BoardCreate';
 import BoardUpdate from './board/BoardUpdate';
-
 import NotFound from './error/NotFound';
-import Sidebar from './modal/Sidebar';
+import Sidebar from './components/MovieModal/Sidebar';
 
 
 function App() {
@@ -80,7 +79,7 @@ function App() {
 
       </Routes>
       <Footer/>
-      <Sidebar 
+      <Sidebar
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}
         clearSearchValue={clearSearchValue}

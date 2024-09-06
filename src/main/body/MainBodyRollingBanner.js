@@ -5,8 +5,8 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectCoverflow } from "swiper/modules";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import MovieModal from "../../modal/MovieModal";
 import { useNavigate } from "react-router-dom";
+import MovieModal from "../../components/MovieModal/MovieModal";
 
 const MainBodyRollingBannerAreaStyle = styled.div`
   height: 60vh;

@@ -4,10 +4,10 @@ import "swiper/css/free-mode";
 import { FreeMode } from 'swiper/modules';
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useCallback, useEffect, useState } from "react";
-import MovieModal from "../../modal/MovieModal";
 import { Cookies } from 'react-cookie';
 import api, { setAuthToken } from "../../Member/api";
 import { useNavigate } from "react-router-dom";
+import MovieModal from "../../components/MovieModal/MovieModal";
 
 // Style definitions
 const MainBodyMovieListSectionStyle = styled.div`
@@ -237,7 +237,7 @@ function MainBodyMovieListSection() {
       </MovieListSwiper>
 
       {selectedMovie && (
-        <MovieModal 
+        <MovieModal
           movie={selectedMovie} 
           onClose={() => setSelectedMovie(null)}
           onGenreClick={handleGenreClick}

@@ -1,177 +1,29 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { FaStar, FaEdit, FaTrash } from 'react-icons/fa';
 import { Cookies } from 'react-cookie';
-import styled, { css, keyframes } from 'styled-components';
 import api from './api';
 
+import 
+{ ActionButton,
+  ActionButtons,
+  EmptyReviewMessage,
+  LoadingSpinner,
+MovieReview,
+  MovieReviewCount,
+  ReviewAuthor,
+  ReviewContent,
+ReviewHeader,
+ReviewInput,
+ReviewInputContainer,
+ReviewItem,
+ReviewList,
+ReviewRating,
+StarRating,
+StyledReviewSection, 
+SubmitReview}
+ from './ReviewSectionStyles';
+
 const cookies = new Cookies();
-
-const scrollbarStyle = css`
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-track {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const StyledReviewSection = styled.div`
-  margin-bottom: 10px;
-  margin-top: 20px;
-  height: 40%; // 고정 높이 설정
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const ReviewHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 10px;
-`;
-
-const MovieReview = styled.h3`
-  font-size: 22px;
-  color: white;
-  margin: 0;
-`;
-
-const MovieReviewCount = styled.div`
-  font-size: 16px;
-  color: white;
-`;
-
-const StarRating = styled.span`
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
-const ReviewInputContainer = styled.div`
-  display: flex;
-  width: 100%;
-  margin-bottom: 10px;
-`;
-
-const ReviewInput = styled.input`
-  flex-grow: 1;
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  margin-right: 10px;
-  border-radius: 5px;
-`;
-
-const SubmitReview = styled.button`
-  background-color: #e50914;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 5px;
-  white-space: nowrap;
-`;
-
-const ActionButton = styled.button`
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 5px;
-  &:hover {
-    color: #e50914;
-  }
-`;
-
-const ReviewText = styled.span`
-  flex-grow: 1;
-`;
-
-const StarRatingDisplay = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
-const LoadingSpinner = styled.div`
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  animation: ${rotate} 1s linear infinite;
-  margin: 10px auto;
-`;
-
-const EmptyReviewMessage = styled.div`
-text-align: center;
-padding: 70px;
-color: #888;
-font-style: italic;
-`;
-
-const ReviewList = styled.ul`
-  margin-top: 20px;
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.1); 
-  border-radius: 5px;
-  max-height: calc(100% - 100px); // 상단 여백을 고려한 최대 높이
-  overflow-y: auto;
-  ${scrollbarStyle}
-  list-style-type: none;
-  width: calc(100% - 10px); // 스크롤바 공간 고려
-`;
-
-const ReviewItem = styled.li`
-  display: flex;
-  align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const ReviewAuthor = styled.span`
-  font-weight: bold;
-  width: 120px;
-  margin-right: 20px;
-`;
-
-const ReviewContent = styled.span`
-  flex: 1;
-  margin-right: 20px;
-`;
-
-const ReviewRating = styled.span`
-  display: flex;
-  align-items: center;
-  margin-right: 20px;
-  min-width: 80px;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
 
 const ReviewSection = ({ 
   reviews, 
@@ -192,9 +44,6 @@ const ReviewSection = ({
 
   const [currentUser, setCurrentUser] = useState(null);
   const [editingStates, setEditingStates] = useState({});
-  const [editingReview, setEditingReview] = useState(null);
-  const [editText, setEditText] = useState('');
-  const [editRating, setEditRating] = useState(0);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -312,7 +161,7 @@ const ReviewSection = ({
       ) : (
         <p>이미 이 영화에 대한 리뷰를 작성하셨습니다.</p>
       )}
-      
+
       <ReviewList>
         {reviews.length > 0 ? (
           reviews.map((item, index) => (
