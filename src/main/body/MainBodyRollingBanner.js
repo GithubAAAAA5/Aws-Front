@@ -109,6 +109,8 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [error, setError] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   const swiperRef = useRef(null);
 
@@ -143,26 +145,29 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
     navigate(`/search?keyword=${keyword}`);  // 이 부분을 수정
   }, [clearSearchValue, navigate]);
 
-  const handleMovieClick = useCallback((movie) => {
-    setSelectedMovie(movie);
-  }, []);
-
   const handleSlideClick = useCallback((index) => {
     if (swiperRef.current && swiperRef.current.swiper) {
       const swiper = swiperRef.current.swiper;
-      const currentIndex = swiper.realIndex;
-      const clickedIndex = (index - currentIndex + swiper.slides.length) % swiper.slides.length;
-
-      if (clickedIndex !== Math.floor(swiper.slides.length / 2)) {
-        // 클릭한 슬라이드가 중앙이 아닌 경우
-        swiper.slideToLoop(index, 500);
-      } else {
-        // 클릭한 슬라이드가 이미 중앙인 경우
+      if (index === activeIndex) {
+        // 클릭한 슬라이드가 현재 활성(중앙) 슬라이드인 경우
         const movie = popularMovies[index];
         setSelectedMovie(movie);
+        setIsModalOpen(true);
+        swiper.autoplay.stop();  // 모달이 열릴 때 자동 재생 중지
+      } else {
+        // 클릭한 슬라이드가 중앙이 아닌 경우
+        swiper.slideToLoop(index, 500);
       }
     }
-  }, [popularMovies]);
+  }, [activeIndex, popularMovies]);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedMovie(null);
+    setIsModalOpen(false);
+    if (swiperRef.current && swiperRef.current.swiper) {
+      swiperRef.current.swiper.autoplay.start();  // 모달이 닫힐 때 자동 재생 재개
+    }
+  }, []);
 
   const swiperParams = useMemo(() => ({
     effect: 'coverflow',
@@ -183,10 +188,13 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
     },
     speed: 1000,
     modules: [Autoplay, EffectCoverflow],
-    onSlideChange: () => {
-      setSelectedMovie(null);  // 슬라이드 변경 시 모달 닫기
+    onSlideChange: (swiper) => {
+      setActiveIndex(swiper.realIndex);
+      if (!isModalOpen) {
+        setSelectedMovie(null);  // 모달이 열려있지 않을 때만 선택된 영화 초기화
+      }
     },
-  }), []);
+  }), [isModalOpen]);
 
   if (error) {
     return <ErrorMessage>{error}</ErrorMessage>;
@@ -198,7 +206,10 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
         {isLoaded && (
           <StyledSwiper {...swiperParams} ref={swiperRef}>    
             {popularMovies.map((movie, index) => (
-              <StyledSwiperSlide key={movie.id} onClick={() => handleSlideClick(index)}>
+              <StyledSwiperSlide 
+                key={movie.id} 
+                onClick={() => handleSlideClick(index)}
+              >
                 <SlideImage 
                   src={`${baseImageUrl}${movie.backdrop_path}`}
                   alt={`영화 ${movie.title}의 배경 이미지`}
@@ -210,10 +221,10 @@ function MainBodyRollingBanner({ clearSearchValue = () => {}, onKeywordClick = (
           </StyledSwiper>
         )}
       </RollingImgArea>
-      {selectedMovie && (
+      {isModalOpen && selectedMovie && (
         <MovieModal
           movie={selectedMovie} 
-          onClose={() => setSelectedMovie(null)}
+          onClose={handleCloseModal}
           onGenreClick={handleGenreClick}
           onKeywordClick={handleKeywordClick}
           clearSearchValue={clearSearchValue}
